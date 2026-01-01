@@ -73,3 +73,13 @@ def update_expense(expense_id: int, expense: Dict[str, Any]):
 
     expenses[expense_id] = updated_expense
     return updated_expense
+
+
+@app.delete("/expense/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_expense(expense_id: int):
+    if expense_id not in expenses:
+        HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    del expenses[expense_id]
+    return JSONResponse(
+        status_code=status.HTTP_204_NO_CONTENT, content="deleted successfully"
+    )
