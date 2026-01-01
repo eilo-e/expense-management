@@ -6,7 +6,7 @@ from typing import Dict, Any
 app = FastAPI(title="Expenses Management API")
 
 expenses: Dict[int, Dict[str, Any]] = {}
-# 1: {"id": 1, "description": "خرید مواد غذایی", "amount": 150000.0},
+
 next_id: int = 1
 
 
