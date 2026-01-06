@@ -1,7 +1,7 @@
 from fastapi import FastAPI, status, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
-
+from schemas import ExpenseCreate, ExpenseResponse, ExpenseUpdate
 
 app = FastAPI(title="Expenses Management API")
 
@@ -16,70 +16,120 @@ def root():
 
 
 @app.post("/expense/add/", status_code=status.HTTP_201_CREATED)
-def created_expense(expense: Dict[str, Any]):
+def create_expense(expense: ExpenseCreate) -> ExpenseResponse:
     global next_id
-    if "description" not in expense or not isinstance(expense["description"], str):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="add description"
-        )
-    if "amount" not in expense or not isinstance(expense["amount"], (int, float)):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="add amount"
-        )
-
-    new_expense = {
-        "id": next_id,
-        "description": expense["description"],
-        "amount": float(expense["amount"]),
-    }
-
-    expenses[next_id] = new_expense
+    new_expense = ExpenseResponse(
+        id=next_id,
+        description=expense.description,
+        amount=expense.amount,
+    )
+    expenses[next_id] = new_expense.model_dump()
     next_id += 1
-
-    return JSONResponse(content=new_expense, status_code=status.HTTP_201_CREATED)
+    return new_expense
 
 
 @app.get("/expenses/", status_code=status.HTTP_200_OK)
-def get_all_expenses() -> list[Dict[str, Any]]:
-    return list(expenses.values())
+def get_all_expenses() -> list[ExpenseResponse]:
+    return [ExpenseResponse(**exp) for exp in expenses.values()]
 
 
 @app.get("/expense/{expense_id}/", status_code=status.HTTP_200_OK)
-def get_expense(expense_id: int):
+def get_expense(expense_id: int) -> ExpenseResponse:
     if expense_id not in expenses:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="add id")
-    return expenses[expense_id]
-
-
-@app.post("/update/{expense_id}")
-def update_expense(expense_id: int, expense: Dict[str, Any]):
-    if expense_id not in expenses:
-        raise HTTPException(status_code=404, detail="Expense not found")
-
-    if "description" not in expense or not isinstance(expense["description"], str):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="add description"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Write The ID"
         )
-    if "amount" not in expense or not isinstance(expense["amount"], (int, float)):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="add amount"
-        )
-
-    updated_expense = {
-        "id": expense_id,
-        "description": expense["description"],
-        "amount": float(expense["amount"]),
-    }
-
-    expenses[expense_id] = updated_expense
-    return updated_expense
+    return ExpenseResponse(**expenses[expense_id])
 
 
-@app.delete("/expense/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_expense(expense_id: int):
+@app.post("/update/{expense_id}/")
+def update_expense(expense_id: int, expense: ExpenseUpdate):
     if expense_id not in expenses:
-        HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    del expenses[expense_id]
-    return JSONResponse(
-        status_code=status.HTTP_204_NO_CONTENT, content="deleted successfully"
-    )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Write The ID"
+        )
+    current = expenses[expense_id].copy()
+
+    update_date = expense.model_dump(exclude_unset=True)
+
+    if not update_date:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Write The ID"
+        )
+
+    current.update(update_date)
+    updated_expense = ExpenseResponse(**current)
+    expenses[expense_id] = updated_expense.model_dump()
+
+@app.delete("/delete/{expense_id}/")
+
+
+
+# @app.post("/expense/add/", status_code=status.HTTP_201_CREATED)
+# def created_expense(expense: Dict[str, Any]):
+#     global next_id
+#     if "description" not in expense or not isinstance(expense["description"], str):
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST, detail="add description"
+#         )
+#     if "amount" not in expense or not isinstance(expense["amount"], (int, float)):
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST, detail="add amount"
+#         )
+
+#     new_expense = {
+#         "id": next_id,
+#         "description": expense["description"],
+#         "amount": float(expense["amount"]),
+#     }
+
+#     expenses[next_id] = new_expense
+#     next_id += 1
+
+#     return JSONResponse(content=new_expense, status_code=status.HTTP_201_CREATED)
+
+
+# @app.get("/expenses/", status_code=status.HTTP_200_OK)
+# def get_all_expenses() -> list[Dict[str, Any]]:
+# return list(expenses.values())
+
+
+# @app.get("/expense/{expense_id}/", status_code=status.HTTP_200_OK)
+# def get_expense(expense_id: int):
+#     if expense_id not in expenses:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="add id")
+#     return expenses[expense_id]
+
+
+# @app.post("/update/{expense_id}")
+# def update_expense(expense_id: int, expense: Dict[str, Any]):
+#     if expense_id not in expenses:
+#         raise HTTPException(status_code=404, detail="Expense not found")
+
+#     if "description" not in expense or not isinstance(expense["description"], str):
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST, detail="add description"
+#         )
+#     if "amount" not in expense or not isinstance(expense["amount"], (int, float)):
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST, detail="add amount"
+#         )
+
+#     updated_expense = {
+#         "id": expense_id,
+#         "description": expense["description"],
+#         "amount": float(expense["amount"]),
+#     }
+
+#     expenses[expense_id] = updated_expense
+#     return updated_expense
+
+
+# @app.delete("/expense/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+# def delete_expense(expense_id: int):
+#     if expense_id not in expenses:
+#         HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+#     del expenses[expense_id]
+#     return JSONResponse(
+#         status_code=status.HTTP_204_NO_CONTENT, content="deleted successfully"
+#     )
